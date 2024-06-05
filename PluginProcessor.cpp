@@ -164,6 +164,11 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     auto leftBlock = audioBlock.getSingleChannelBlock(0);
     auto rightBlock = audioBlock.getSingleChannelBlock(1);
     
+    //save raw audio - only left side for now
+    const float* rawReadPtr = buffer.getReadPointer(0);
+    const int numRawSamples = buffer.getNumSamples();
+    bufferRawAudio(rawReadPtr, numRawSamples);
+
     juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
     juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
 
@@ -173,6 +178,11 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 
     leftChain.process(leftContext);
     rightChain.process(rightContext);
+
+    //save processed audio - only left side for now
+    const float* procReadPtr = buffer.getReadPointer(0);
+    const int numProcSamples = buffer.getNumSamples();
+    bufferProcAudio(procReadPtr, numProcSamples);
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
     // Make sure to reset the state if your inner loop is processing
@@ -187,6 +197,47 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     }
 }
 
+void NewProjectAudioProcessor::bufferRawAudio(const float* readPtr, const int numSamples) noexcept
+{
+    for (int i = 0; i < numSamples; i++)
+    {
+        //only display raw for now
+        if (rawFifoIndex == fftSize)
+        {
+            if (!rawBufferFull)
+            {
+                juce::zeromem(rawfftData, sizeof(rawfftData));
+                memcpy(rawfftData, rawFifo, sizeof(rawFifo));
+                rawBufferFull = true;
+            }
+            rawFifoIndex = 0;
+        }
+        float currSample = readPtr[i];
+        //post-increment operator increments index after setting current value to currSample
+        rawFifo[rawFifoIndex++] = currSample;
+    }
+}
+
+void NewProjectAudioProcessor::bufferProcAudio(const float* readPtr, const int numSamples) noexcept
+{
+    for (int i = 0; i < numSamples; i++)
+    {
+        //only display raw for now
+        if (procFifoIndex == fftSize)
+        {
+            if (!procBufferFull)
+            {
+                juce::zeromem(procfftData, sizeof(procfftData));
+                memcpy(procfftData, procFifo, sizeof(procFifo));
+                procBufferFull = true;
+            }
+            procFifoIndex = 0;
+        }
+        float currSample = readPtr[i];
+        //post-increment operator increments index after setting current value to currSample
+        procFifo[procFifoIndex++] = currSample;
+    }
+}
 
 void NewProjectAudioProcessor::toggleBypassAll()
 {

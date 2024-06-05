@@ -19,7 +19,8 @@ NewProjectAudioProcessorEditor::NewProjectAudioProcessorEditor (NewProjectAudioP
     waveshaperBypassButton.addListener(this);
     EqBypassButton.addListener(this);
     allBypassButton.addListener(this);
-    setSize (400, 300);
+    startTimerHz(120);
+    setSize (400, 500);
 }
 
 NewProjectAudioProcessorEditor::~NewProjectAudioProcessorEditor()
@@ -32,14 +33,14 @@ void NewProjectAudioProcessorEditor::paint (juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
-    waveshaperBypassButton.setButtonText("Waveshaping Bypass");
+    waveshaperBypassButton.setButtonText("Waveshaping Toggle");
     waveshaperBypassButton.setClickingTogglesState(true);
     waveshaperBypassButton.setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::red);
     //off color is just buttonColourId and is the default
     waveshaperBypassButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::green);
     addAndMakeVisible(waveshaperBypassButton);
 
-    EqBypassButton.setButtonText("EQ Bypass");
+    EqBypassButton.setButtonText("EQ Toggle");
     EqBypassButton.setClickingTogglesState(true);
     EqBypassButton.setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::red);
     EqBypassButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::green);
@@ -50,6 +51,9 @@ void NewProjectAudioProcessorEditor::paint (juce::Graphics& g)
     allBypassButton.setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::orange);
     allBypassButton.setColour(juce::TextButton::ColourIds::buttonColourId, juce::Colours::orange);
     addAndMakeVisible(allBypassButton);
+    
+    //paint analyser
+    addAndMakeVisible(analyser);
 }
 
 void NewProjectAudioProcessorEditor::resized()
@@ -59,9 +63,10 @@ void NewProjectAudioProcessorEditor::resized()
     int width = getWidth();
     int height = getHeight();
     //x coordinate is leftmost pixel
-    waveshaperBypassButton.setBounds(0.1 * width, 0, 0.8 * width, 0.25 * height);
-    EqBypassButton.setBounds(0.1 * width, 0.25 * height, 0.8 * width, 0.25 * height);
-    allBypassButton.setBounds(0.1 * width, 0.5 * height, 0.8 * width, 0.25 * height);
+    analyser.setBounds(0.1 * width, 0.05 * height, 0.8 * width, 0.25 * height);
+    waveshaperBypassButton.setBounds(0.1 * width, 0.325 * height, 0.8 * width, 0.2 * height);
+    EqBypassButton.setBounds(0.1 * width, 0.525 * height, 0.8 * width, 0.2 * height);
+    allBypassButton.setBounds(0.1 * width, 0.725 * height, 0.8 * width, 0.2 * height);
 }
 
 //==============================================================================
@@ -91,5 +96,24 @@ void NewProjectAudioProcessorEditor::buttonClicked(juce::Button* button)
             EqBypassButton.setToggleState(false, false);
         }
         repaint();
+    }
+}
+
+//==============================================================================
+void NewProjectAudioProcessorEditor::timerCallback()
+{
+    //only draw if both buffers are full
+    if (audioProcessor.rawBufferFull && audioProcessor.procBufferFull)
+    {
+        if (!EqBypassButton.getToggleState() || !waveshaperBypassButton.getToggleState())
+            analyser.drawProcLine = true;
+        else
+        {
+            analyser.drawProcLine = false;
+        }
+        analyser.drawNextFrameOfSpectrum(audioProcessor.rawfftData, audioProcessor.procfftData);
+        audioProcessor.rawBufferFull = false;
+        audioProcessor.procBufferFull = false;
+        analyser.repaint();
     }
 }

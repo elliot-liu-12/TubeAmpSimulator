@@ -9,12 +9,11 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Analyser.h"
 #include "PluginProcessor.h"
-
 //==============================================================================
-/**
-*/
-class NewProjectAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Button::Listener
+class NewProjectAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Button::Listener,
+    public juce::Timer
 {
 public:
     NewProjectAudioProcessorEditor (NewProjectAudioProcessor&);
@@ -24,6 +23,7 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
     void buttonClicked(juce::Button* button) override;
+    void timerCallback() override;
 
 private:
     // This reference is provided as a quick way for your editor to
@@ -32,6 +32,7 @@ private:
     juce::TextButton allBypassButton{ "Off" };
     juce::TextButton waveshaperBypassButton {"Off"};
     juce::TextButton EqBypassButton{ "Off" };
+    AnalyserComponent analyser;
     float dryWet = 1.0;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewProjectAudioProcessorEditor)
 };

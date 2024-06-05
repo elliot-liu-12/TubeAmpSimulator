@@ -33,6 +33,8 @@ public:
     void toggleBypassEQ();
     void toggleBypassWaveshaper();
     void toggleBypassAll();
+    void bufferRawAudio(const float* readptr, const int numSamples) noexcept;
+    void bufferProcAudio(const float* readptr, const int numSamples) noexcept;
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
@@ -57,12 +59,30 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
     bool allBypassed = false;
 
+    //add constants later
+    enum
+    {
+        fftOrder = 11,             // [1]
+        fftSize = 1 << fftOrder,  // [2]
+        scopeSize = 512             // [3]
+    };
+
+    float rawFifo[fftSize];
+    float procFifo[fftSize];
+    float rawfftData[fftSize * 2];
+    float procfftData[fftSize * 2];
+    int rawFifoIndex = 0;
+    int procFifoIndex = 0;
+    bool rawBufferFull = false;
+    bool procBufferFull = false;
+
 private:
     bool waveshaperBypassed = false;
     bool EqBypassed = false;
     juce::dsp::WaveShaper<float> waveshaper;
     juce::dsp::ProcessorChain <juce::dsp::IIR::Filter<float>> leftChain;
     juce::dsp::ProcessorChain <juce::dsp::IIR::Filter<float>> rightChain;
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewProjectAudioProcessor)
 };
